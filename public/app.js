@@ -8,6 +8,20 @@ const windowContainer = document.getElementById("windowContainer");
 
 let zIndexCounter = 1;
 
+async function captureWindowPreview(windowEl) {
+  const canvas = document.getElementById("previewCanvas");
+  const ctx = canvas.getContext("2d");
+
+  const rendered = await html2canvas(windowEl, { backgroundColor: null });
+
+  canvas.width = rendered.width;
+  canvas.height = rendered.height;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(rendered, 0, 0);
+
+  return canvas.toDataURL("image/png");
+}
+
 // APP RULES
 const appRules = {
   software: {
@@ -213,11 +227,11 @@ async function createLivePreview(win) {
 }
 
 async function openStackMenu(app, icon) {
-  const existing = document.querySelector(".stack-menu");
-  if (existing) existing.remove();
+  // remove any other app's stack menu
+  document.querySelectorAll(".stack-menu").forEach(m => m.remove());
 
   const instances = appInstances[app] || [];
-  if (instances.length === 0) return; // Only show if at least 1 instance
+  if (instances.length === 0) return;
 
   const menu = document.createElement("div");
   menu.className = "stack-menu";
@@ -228,6 +242,7 @@ async function openStackMenu(app, icon) {
 
   for (let i = 0; i < instances.length; i++) {
     const win = instances[i];
+
     const item = document.createElement("div");
     item.className = "stack-item";
 
@@ -235,12 +250,12 @@ async function openStackMenu(app, icon) {
       <div class="stack-left">
         <span class="stack-icon">⬇️</span>
         <span class="stack-title">${app.toUpperCase()} (${i + 1})</span>
+        <button class="stack-close">✕</button>
       </div>
-      <button class="stack-close">✕</button>
     `;
 
     const closeBtn = item.querySelector(".stack-close");
-    const preview = await createLivePreview(win); // ✅ NOW AWAITED
+    const preview = await createLivePreview(win);
 
     item.appendChild(preview);
 
@@ -260,7 +275,6 @@ async function openStackMenu(app, icon) {
 
   document.body.appendChild(menu);
 
-  // Wait for layout to finish, then position
   requestAnimationFrame(() => {
     const rect = icon.getBoundingClientRect();
     const menuRect = menu.getBoundingClientRect();
@@ -269,17 +283,14 @@ async function openStackMenu(app, icon) {
     let top = rect.top - menuRect.height - 10;
     let left = rect.left;
 
-    // if menu goes above screen, drop it below icon
     if (top < 0) {
       top = rect.bottom + 10;
     }
 
-    // clamp left/right to viewport
     const maxLeft = window.innerWidth - menuRect.width - 10;
     if (left > maxLeft) left = maxLeft;
     if (left < 10) left = 10;
 
-    // prevent overlapping taskbar
     const bottom = top + menuRect.height;
     if (bottom > window.innerHeight - taskbarHeight) {
       top = window.innerHeight - taskbarHeight - menuRect.height - 10;
@@ -289,7 +300,6 @@ async function openStackMenu(app, icon) {
     menu.style.left = `${left}px`;
   });
 
-  // keep menu alive while hovering it
   menu.addEventListener("mouseenter", () => {
     clearTimeout(menuTimers[app]);
   });
@@ -300,6 +310,7 @@ async function openStackMenu(app, icon) {
     }, 200);
   });
 }
+
 
 function maximizeWindow(win) {
   if (win.classList.contains("maximized")) {
