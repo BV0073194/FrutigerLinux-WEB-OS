@@ -12,7 +12,7 @@ app.use(express.static(path.join(__dirname, "../public")));
 // -----------------------------
 // NEW: Community Apps Folder
 // -----------------------------
-const APPS_DIR = path.join(__dirname, "apps");
+const APPS_DIR = path.join(__dirname, "../public/apps");
 const USER_CONFIG_FILE = path.join(__dirname, "userConfig.json");
 
 // -----------------------------
@@ -144,25 +144,39 @@ app.post("/api/update", (req, res) => {
   res.json({ success: true });
 });
 
+// -----------------------------
+// API - list js files in app
+// -----------------------------
+app.get("/api/apps/:appname", (req, res) => {
+  const appname = req.params.appname;
+  const appDir = path.join(APPS_DIR, appname);
+
+  if (!fs.existsSync(appDir)) {
+    return res.status(404).json({ error: "App not found" });
+  }
+
+  fs.readdir(appDir, (err, files) => {
+    if (err) return res.status(500).json({ error: "Error reading directory" });
+    const jsFiles = files.filter(f => f.endsWith('.js'));
+    res.json(jsFiles);
+  });
+});
+
 // NEW: Serve apps static files (CORRECTED)
 app.use("/apps", express.static(APPS_DIR));
 
 // Download OS
-app.get("/os", (req, res) => {
+app.get("/apps/os", (req, res) => {
   res.download(OS_FILE);
 });
 
 // Download software
-app.get("/software/:file", (req, res) => {
+app.get("/apps/software/:file", (req, res) => {
   const file = req.params.file;
   const fullPath = path.join(SOFTWARE_DIR, file);
   res.download(fullPath);
 });
 
-// Serve the software page
-app.get("/software", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/software.html"));
-});
 
 // fallback
 app.get("*", (req, res) => {

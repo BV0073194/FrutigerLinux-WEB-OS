@@ -8,6 +8,8 @@ const windowContainer = document.getElementById("windowContainer");
 
 let zIndexCounter = 1;
 
+var loadedModules = {};
+
 async function captureWindowPreview(windowEl) {
   const canvas = document.getElementById("previewCanvas");
   const ctx = canvas.getContext("2d");
@@ -68,9 +70,11 @@ const appInstances = {};
 const menuTimers = {};  // <-- PER-APP TIMER
 
 function openApp(app) {
-  const rules = appRules[app] || {
-    maxInstances: 1,
-    stack: false,
+  const appname = app;
+  app = "/apps/" + app;
+  const rules = appRules[(app + `/${appname}.properties`)] || {
+    maxInstances: -1,
+    stack: true,
     resizable: true,
     minimize: true,
     maximize: true,
@@ -100,7 +104,7 @@ function openApp(app) {
 
   win.innerHTML = `
     <div class="window-header">
-      <div class="window-title">${app.toUpperCase()}</div>
+      <div class="window-title">${appname.toUpperCase()}</div>
       <div class="window-controls">
         <button class="win-btn" data-action="minimize">▁</button>
         <button class="win-btn" data-action="maximize">▢</button>
@@ -122,12 +126,38 @@ function openApp(app) {
   });
 
   // load app content into window body
-  fetch(`/${app}.html`)
+  fetch(`${app}/index.html`)
     .then((r) => r.text())
     .then((html) => {
       win.querySelector(".window-body").innerHTML = html;
-      if (app === "software") {
-        window.softwareApp?.init?.(win.querySelector(".window-body"));
+      if (!loadedModules[app]) {
+        return fetch(`/api/apps/${appname}`)
+          .then(r => r.json())
+          .then(jsFiles => {
+            loadedModules[app] = [];
+            const loadPromises = jsFiles.map(file => {
+              return new Promise((resolve) => {
+                var modules = document.createElement("script");
+                modules.type = "module";
+                modules.src = `${app}/${file}`;
+                modules.onload = resolve;
+                modules.onerror = resolve;
+                document.body.appendChild(modules);
+                loadedModules[app].push(modules);
+              });
+            });
+            return Promise.all(loadPromises);
+          })
+          .then(() => {
+            if (app === "/apps/software") {
+              window.softwareApp?.init?.(win.querySelector(".window-body"));
+            }
+          })
+          .catch(err => window.alert('Failed to load JS files:', err));
+      } else {
+        if (app === "/apps/software") {
+          window.softwareApp?.init?.(win.querySelector(".window-body"));
+        }
       }
     })
     .catch(() => {
@@ -185,6 +215,10 @@ function closeWindow(win) {
   appInstances[app] = appInstances[app].filter((w) => w !== win);
   win.remove();
   updateTaskbarIndicator(app);
+  if (loadedModules[app]) {
+    loadedModules[app].forEach(mod => mod.remove());
+    delete loadedModules[app];
+  }
 }
 
 function minimizeWindow(win) {
