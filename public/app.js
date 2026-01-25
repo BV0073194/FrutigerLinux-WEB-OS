@@ -7,51 +7,40 @@ const closeStart = document.getElementById("closeStart");
 const windowContainer = document.getElementById("windowContainer");
 
 let zIndexCounter = 1;
-
 var loadedModules = {};
 
-async function captureWindowPreview(windowEl) {
-  const canvas = document.getElementById("previewCanvas");
-  const ctx = canvas.getContext("2d");
-
-  const rendered = await html2canvas(windowEl, { backgroundColor: null });
-
-  canvas.width = rendered.width;
-  canvas.height = rendered.height;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(rendered, 0, 0);
-
-  return canvas.toDataURL("image/png");
+// helper: convert "/apps/software" => "software"
+function getAppKey(app) {
+  return app.replace("/apps/", "");
 }
 
+// ==========================
 // APP RULES
-const appRules = {
-  software: {
-    maxInstances: -1,
-    stack: true,
-    resizable: true,
-    minimize: true,
-    maximize: true,
-    taskbarIcon: false
-  },
-  os: {
-    maxInstances: 2,
-    stack: false,
-    resizable: false,
-    minimize: false,
-    maximize: false,
-    taskbarIcon: true
-  },
-  about: {
-    maxInstances: 1,
-    stack: true,
-    resizable: true,
-    minimize: true,
-    maximize: false,
-    taskbarIcon: false
-  }
-};
+// ==========================
+var appRules = {};
 
+// ==========================
+// COMMUNITY APPS LOADER
+// ==========================
+async function loadCommunityApps() {
+  try {
+    const res = await fetch("/api/apps");
+    const apps = await res.json();
+
+    apps.forEach(app => {
+      appRules[app.name] = app.rules;
+    });
+  } catch (err) {
+    console.warn("Failed to load community apps:", err);
+  }
+}
+
+// run loader
+loadCommunityApps();
+
+// ==========================
+// START MENU
+// ==========================
 function toggleStart() {
   startMenu.style.display = startMenu.style.display === "block" ? "none" : "block";
 }
@@ -65,24 +54,45 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// Track instances
+// ==========================
+// APP MANAGEMENT
+// ==========================
 const appInstances = {};
-const menuTimers = {};  // <-- PER-APP TIMER
+const menuTimers = {}; // <-- PER-APP TIMER
+let activeStackApp = null; // prevents hover flicker
 
-function openApp(app) {
-  const appname = app;
-  app = "/apps/" + app;
-  const rules = appRules[appname] || {
-    maxInstances: -1,
-    stack: true,
-    resizable: true,
-    minimize: true,
-    maximize: true,
-    taskbarIcon: false
-  };
+async function getAppRules(app) {
+  if (appRules[app]) {
+    console.log("App rules found:", appRules[app]);
+    return appRules[app];
+  } else {
+    console.log("Fetching app rules from:", `${app}`);
+    try {
+      const res = await fetch(`${app}`);
+      if (!res.ok) throw new Error('Network response was not ok');
+      const rules = await res.json();
+      console.log("Fetched app rules:", rules);
+      return rules;
+    } catch (error) {
+      console.error("Failed to fetch app rules:", error);
+      return {
+        maxInstances: 1,
+        stack: false,
+        resizable: true,
+        minimize: true,
+        maximize: true,
+        taskbarIcon: false
+      };
+    }
+  }
+}
 
-  appInstances[app] = appInstances[app] || [];
-  const instances = appInstances[app];
+function openApp(appKey) {
+  const appPath = "/apps/" + appKey;
+  const rules = getAppRules(`${appPath}/app.properties.json`);
+
+  appInstances[appPath] = appInstances[appPath] || [];
+  const instances = appInstances[appPath];
 
   // enforce max instances (unless -1)
   if (rules.maxInstances !== -1 && instances.length >= rules.maxInstances) {
@@ -97,14 +107,16 @@ function openApp(app) {
   win.style.left = "70px";
   win.style.zIndex = ++zIndexCounter;
 
-  win.dataset.app = app;
+  win.dataset.app = appPath;
+  win.dataset.appKey = appKey;
   win.dataset.resizable = rules.resizable;
   win.dataset.minimize = rules.minimize;
   win.dataset.maximize = rules.maximize;
+  win.dataset.minimized = "false";
 
   win.innerHTML = `
     <div class="window-header">
-      <div class="window-title">${appname.toUpperCase()}</div>
+      <div class="window-title">${appKey.toUpperCase()}</div>
       <div class="window-controls">
         <button class="win-btn" data-action="minimize">▁</button>
         <button class="win-btn" data-action="maximize">▢</button>
@@ -126,19 +138,19 @@ function openApp(app) {
   });
 
   // load app content into window body
-  fetch(`${app}/index.html`)
+  fetch(`${appPath}/index.html`)
     .then((r) => r.text())
     .then((html) => {
       win.querySelector(".window-body").innerHTML = html;
-      if (!loadedModules[app]) {
-        return fetch(`/api/apps/${appname}`)
+      if (!loadedModules[appPath]) {
+        return fetch(`/api/apps/${appKey}`)
           .then(r => r.json())
           .then(jsFiles => {
-            const loadPromises = jsFiles.map(file => import(`${app}/${file}`));
+            const loadPromises = jsFiles.map(file => import(`${appPath}/${file}`));
             return Promise.all(loadPromises);
           })
           .then(modules => {
-            loadedModules[app] = modules;
+            loadedModules[appPath] = modules;
             // Call init for known apps
             const softwareModule = modules.find(m => m.softwareApp);
             if (softwareModule) {
@@ -152,11 +164,11 @@ function openApp(app) {
           .catch(err => console.error('Failed to load JS modules:', err));
       } else {
         // Already loaded, call init
-        const softwareModule = loadedModules[app].find(m => m.softwareApp);
+        const softwareModule = loadedModules[appPath].find(m => m.softwareApp);
         if (softwareModule) {
           softwareModule.softwareApp.init(win.querySelector(".window-body"));
         }
-        const osModule = loadedModules[app].find(m => m.init);
+        const osModule = loadedModules[appPath].find(m => m.init);
         if (osModule) {
           osModule.init();
         }
@@ -192,18 +204,7 @@ function openApp(app) {
   }
 
   makeDraggable(win);
-
-  // Use launcher as indicator ONLY if stackable
-  const launcher = document.querySelector(`[data-app="${app}"]`);
-  if (launcher && rules.stack) {
-    if (!launcher.querySelector(".taskbar-indicator")) {
-      const bar = document.createElement("div");
-      bar.className = "taskbar-indicator";
-      launcher.appendChild(bar);
-    }
-  }
-
-  updateTaskbarIndicator(app);
+  updateTaskbarIndicator(appPath);
 }
 
 function focusWindow(win) {
@@ -213,12 +214,12 @@ function focusWindow(win) {
 }
 
 function closeWindow(win) {
-  const app = win.dataset.app;
-  appInstances[app] = appInstances[app].filter((w) => w !== win);
+  const appPath = win.dataset.app;
+  appInstances[appPath] = appInstances[appPath].filter((w) => w !== win);
   win.remove();
-  updateTaskbarIndicator(app);
-  if (loadedModules[app]) {
-    delete loadedModules[app];
+  updateTaskbarIndicator(appPath);
+  if (loadedModules[appPath]) {
+    delete loadedModules[appPath];
   }
 }
 
@@ -228,16 +229,28 @@ function minimizeWindow(win) {
   updateTaskbarIndicator(win.dataset.app);
 }
 
-function updateTaskbarIndicator(app) {
-  const rules = appRules[app] || {};
-  const launcher = document.querySelector(`[data-app="${app}"]`);
+function updateTaskbarIndicator(appPath) {
+  const appKey = getAppKey(appPath);
+  const rules = getAppRules(appKey);
+  if (!rules.stack) return;
 
-  const instances = appInstances[app] || [];
-  const show = instances.length > 0;
+  const launcher = document.querySelector(`[data-app="${appKey}"]`);
+  if (!launcher) return;
 
-  if (launcher && rules.stack) {
-    const bar = launcher.querySelector(".taskbar-indicator");
-    if (bar) bar.style.display = show ? "block" : "none";
+  const instances = appInstances[appPath] || [];
+  const hasAny = instances.length > 0;
+
+  let bar = launcher.querySelector(".taskbar-indicator");
+
+  if (!bar && hasAny) {
+    bar = document.createElement("div");
+    bar.className = "taskbar-indicator";
+    launcher.appendChild(bar);
+  }
+
+  if (bar) {
+    bar.style.display = hasAny ? "block" : "none";
+    bar.style.height = instances.length > 1 ? "4px" : "2px";
   }
 }
 
@@ -261,11 +274,11 @@ async function createLivePreview(win) {
   return preview;
 }
 
-async function openStackMenu(app, icon) {
+async function openStackMenu(appPath, icon) {
   // remove any other app's stack menu
   document.querySelectorAll(".stack-menu").forEach(m => m.remove());
 
-  const instances = appInstances[app] || [];
+  const instances = appInstances[appPath] || [];
   if (instances.length === 0) return;
 
   const menu = document.createElement("div");
@@ -284,7 +297,7 @@ async function openStackMenu(app, icon) {
     item.innerHTML = `
       <div class="stack-left">
         <span class="stack-icon">⬇️</span>
-        <span class="stack-title">${app.toUpperCase()} (${i + 1})</span>
+        <span class="stack-title">${getAppKey(appPath).toUpperCase()} (${i + 1})</span>
         <button class="stack-close">✕</button>
       </div>
     `;
@@ -318,7 +331,6 @@ async function openStackMenu(app, icon) {
     let top = rect.top - menuRect.height - 10;
     let left = rect.left + rect.width / 2 - menuRect.width / 2;
 
-
     if (top < 0) {
       top = rect.bottom + 10;
     }
@@ -337,17 +349,22 @@ async function openStackMenu(app, icon) {
   });
 
   menu.addEventListener("mouseenter", () => {
-    clearTimeout(menuTimers[app]);
+    clearTimeout(menuTimers[getAppKey(appPath)]);
+    activeStackApp = getAppKey(appPath);
   });
 
   menu.addEventListener("mouseleave", () => {
-    menuTimers[app] = setTimeout(() => {
+    const key = getAppKey(appPath);
+    menuTimers[key] = setTimeout(() => {
       menu.remove();
-    }, 200);
+      activeStackApp = null;
+    }, 250);
   });
 }
 
-
+// ==========================
+// WINDOWS
+// ==========================
 function maximizeWindow(win) {
   if (win.classList.contains("maximized")) {
     win.classList.remove("maximized");
@@ -446,15 +463,25 @@ document.querySelectorAll("[data-app]").forEach((btn) => {
 
   // hover menu only for launcher
   btn.addEventListener("mouseenter", () => {
-    clearTimeout(menuTimers[btn.dataset.app]);
-    const rules = appRules[btn.dataset.app] || {};
-    if (rules.stack) openStackMenu(btn.dataset.app, btn);
+    const appKey = btn.dataset.app;
+    const rules = getAppRules(appKey);
+    if (!rules.stack) return;
+
+    activeStackApp = appKey;
+    clearTimeout(menuTimers[appKey]);
+    openStackMenu("/apps/" + appKey, btn);
   });
 
   btn.addEventListener("mouseleave", () => {
-    menuTimers[btn.dataset.app] = setTimeout(() => {
-      const menu = document.querySelector(".stack-menu");
-      if (menu && !menu.matches(":hover")) menu.remove();
-    }, 200);
+    const appKey = btn.dataset.app;
+    menuTimers[appKey] = setTimeout(() => {
+      if (activeStackApp === appKey) {
+        const menu = document.querySelector(".stack-menu");
+        if (menu && !menu.matches(":hover")) {
+          menu.remove();
+          activeStackApp = null;
+        }
+      }
+    }, 250);
   });
 });

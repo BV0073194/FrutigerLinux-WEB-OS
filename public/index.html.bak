@@ -21,8 +21,8 @@
 
       <div class="taskbar-icons">
         <button class="task-icon" data-app="os" title="Download OS">🪟</button>
-        <button class="task-icon" data-app="software" title="Software Store">⬇️</button>
-        <button class="task-icon" data-app="about" title="About">ℹ️</button>
+        <button class="task-icon" ondblclick="openApp('software')" title="Software Store">⬇️</button>
+        <button class="task-icon" title="About" ondblclick="openApp('os')">ℹ️</button>
       </div>
 
       <div class="taskbar-right">

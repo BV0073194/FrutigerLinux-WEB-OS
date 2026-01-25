@@ -1,0 +1,561 @@
+/* =========================
+   Frutiger Aero (Vista -> Win11)
+   Dynamic Responsive + Cross Browser
+   + Aero Animations + Windows UI
+   ========================= */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  font-family: "Segoe UI", "Frutiger", "Helvetica Neue", Arial, sans-serif;
+  background: #0b2a5c;
+  color: #f5f7fb;
+  overflow: hidden;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+
+/* ---------- Wallpaper ---------- */
+.wallpaper {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #0b2a5c 0%, #0b3d7a 45%, #0b1f44 100%);
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.12), transparent 55%);
+  pointer-events: none;
+}
+
+/* ---------- Desktop ---------- */
+.desktop {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ---------- Taskbar ---------- */
+.taskbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 54px;
+  background: rgba(0,0,0,0.35);
+  border-top: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  backdrop-filter: blur(12px);
+  z-index: 9999;
+}
+
+.start-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.08);
+  cursor: pointer;
+  transition: transform .15s ease, background .15s ease;
+}
+
+.start-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255,255,255,0.12);
+}
+
+.start-icon {
+  font-size: 18px;
+}
+
+.start-text {
+  font-weight: 600;
+}
+
+.taskbar-icons {
+  display: flex;
+  gap: 8px;
+}
+
+.task-icon {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.08);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .15s ease, background .15s ease;
+}
+
+.task-icon:hover {
+  transform: translateY(-1px);
+  background: rgba(255,255,255,0.12);
+}
+
+.taskbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.clock {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* ---------- Start Menu ---------- */
+.start-menu {
+  position: fixed;
+  bottom: 54px;
+  left: 12px;
+  width: min(420px, 90vw);
+  background: rgba(10, 20, 40, 0.55);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 18px;
+  padding: 12px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  display: none;
+  animation: fadeInUp 0.35s ease both;
+}
+
+.start-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.start-menu-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.close-start {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.start-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.start-tile {
+  border-radius: 16px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.08);
+  cursor: pointer;
+  transition: transform .15s ease, background .15s ease;
+}
+
+.start-tile:hover {
+  transform: translateY(-2px);
+  background: rgba(255,255,255,0.12);
+}
+
+.tile-icon {
+  font-size: 22px;
+}
+
+.tile-title {
+  margin-top: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* ---------- Windows ---------- */
+.window-container {
+  position: absolute;
+  inset: 0;
+}
+
+.window {
+  position: absolute;
+  width: min(720px, 92vw);
+  height: min(520px, 78vh);
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 18px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 30px 90px rgba(0,0,0,0.55);
+  overflow: hidden;
+  animation: tilePop 0.45s ease both;
+}
+
+.window-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.12);
+  cursor: grab;
+}
+
+.window-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.window-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.win-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.08);
+  cursor: pointer;
+}
+
+.win-btn:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+.window-body {
+  padding: 16px;
+  height: calc(100% - 56px);
+  overflow: auto;
+}
+
+/* ---------- General Layout ---------- */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: clamp(0.75rem, 2vw, 1.25rem);
+}
+
+.aero-card {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 18px;
+  padding: clamp(1rem, 2vw, 1.4rem);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+  animation: fadeInUp 0.7s ease both;
+}
+
+@supports (backdrop-filter: blur(10px)) {
+  .aero-card {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+}
+
+.aero-card h2 {
+  font-size: clamp(1.2rem, 2.2vw, 1.7rem);
+  margin-bottom: 0.6rem;
+}
+
+.aero-card p {
+  font-size: clamp(0.9rem, 1.4vw, 1.05rem);
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(0.65rem, 1.2vw, 0.9rem) clamp(0.9rem, 1.4vw, 1.2rem);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.08);
+  color: #f6f8fb;
+  cursor: pointer;
+  transition: transform .15s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
+  user-select: none;
+  font-size: clamp(0.9rem, 1.1vw, 1rem);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.3);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+}
+
+.btn.primary {
+  background: linear-gradient(135deg, rgba(0,160,255,0.35), rgba(100,200,255,0.2));
+  border-color: rgba(160,230,255,0.4);
+}
+
+.btn.primary:hover {
+  box-shadow: 0 0 0 6px rgba(0,160,255,0.15), 0 18px 40px rgba(0,0,0,0.35);
+}
+
+/* ---------- Software Grid ---------- */
+.software-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: clamp(0.8rem, 1.2vw, 1rem);
+}
+
+.software-card {
+  padding: 1rem;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  animation: tilePop 0.5s ease both;
+}
+
+.software-card:hover {
+  transform: translateY(-2px);
+  transition: transform .15s ease;
+}
+
+.software-card .top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.software-card .icon {
+  width: clamp(40px, 6vw, 50px);
+  height: clamp(40px, 6vw, 50px);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(1.2rem, 1.6vw, 1.4rem);
+}
+
+.software-card h4 {
+  font-size: 1.05rem;
+  margin-top: 0.7rem;
+  margin-bottom: 0.5rem;
+}
+
+.software-card .meta {
+  font-size: 0.9rem;
+  opacity: 0.85;
+  line-height: 1.3;
+}
+
+.software-card .sha {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 0.75rem;
+  word-break: break-word;
+  opacity: 0.8;
+  margin-top: 0.6rem;
+}
+
+.software-card .download-row {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* ---------- Inputs ---------- */
+.input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(0,0,0,0.18);
+  color: #fff;
+  outline: none;
+}
+
+.input:focus {
+  border-color: rgba(120, 200, 255, 0.6);
+  box-shadow: 0 0 0 4px rgba(120, 200, 255, 0.18);
+}
+
+/* ---------- Animations ---------- */
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tilePop {
+  0% { transform: translateY(8px) scale(0.98); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes shine {
+  0% { transform: translateX(-100%); opacity: 0; }
+  50% { opacity: 0.7; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  .window {
+    width: 92vw;
+    height: 82vh;
+  }
+}
+
+@media (max-width: 520px) {
+  body { overflow: auto; }
+  .taskbar { height: 58px; }
+  .start-text { display: none; }
+  .task-icon { width: 36px; height: 36px; }
+  .start-menu-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* window container sits under taskbar */
+#windowContainer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Each window still receives clicks */
+.window {
+  pointer-events: auto;
+}
+
+/* Taskbar stays on top */
+.taskbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 54px;
+  z-index: 9999;
+}
+
+/* =========================
+   TASKBAR INDICATOR BAR
+   ========================= */
+
+.taskbar-indicator {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.65);
+  display: none; /* show only when app open */
+}
+
+/* For icons that use taskbar icons too */
+.task-icon .taskbar-indicator {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.65);
+}
+
+/* =========================
+   STACK COUNT DOTS
+   ========================= */
+.task-icon.stacking::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.75);
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.15);
+}
+
+/* =========================
+   STACK MENU (HORIZONTAL)
+   ========================= */
+/* STACK MENU */
+.stack-menu {
+  position: fixed;
+  background: #222;
+  color: #fff;
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 0 12px rgba(0,0,0,0.5);
+  z-index: 9999;
+
+  max-width: 90vw;
+  max-height: 260px;   /* fixed height so scroll works */
+  overflow-x: auto;    /* allow horizontal scroll */
+  overflow-y: hidden;  /* disable vertical scroll */
+}
+
+/* hide scrollbar (Webkit browsers) */
+.stack-menu::-webkit-scrollbar {
+  display: none;
+}
+
+/* hide scrollbar (Firefox) */
+.stack-menu {
+  scrollbar-width: none;
+}
+
+/* horizontal layout row */
+.stack-items-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+/* each preview item */
+.stack-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px;
+  min-width: 220px; /* ensures consistent size */
+}
+
+
+/* close button */
+.stack-close {
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+/* Live preview */
+.stack-preview {
+  width: 240px;
+  height: 140px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(0,0,0,0.25);
+}
+
+.stack-preview-img {
+  width: 220px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 6px;
+}
