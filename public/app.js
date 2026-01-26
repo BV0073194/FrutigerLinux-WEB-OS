@@ -294,6 +294,10 @@ function closeWindow(win) {
 }
 
 function minimizeWindow(win) {
+  // capture preview before hiding
+  html2canvas(win, { backgroundColor: null }).then(canvas => {
+    win.storedPreview = canvas.toDataURL("image/png");
+  });
   win.dataset.minimized = "true";
   win.style.display = "none";
   updateTaskbarIndicator(win.dataset.appKey);
@@ -322,9 +326,17 @@ async function createLivePreview(win) {
   const inner = document.createElement("div");
   inner.className = "stack-preview-inner";
 
-  const canvas = await html2canvas(win, { backgroundColor: null });
+  let imgSrc;
+  if (win.dataset.minimized === "true" && win.storedPreview) {
+    imgSrc = win.storedPreview;
+  } else {
+    const canvas = await html2canvas(win, { backgroundColor: null });
+    imgSrc = canvas.toDataURL("image/png");
+    win.storedPreview = imgSrc; // store for future use
+  }
+
   const img = document.createElement("img");
-  img.src = canvas.toDataURL("image/png");
+  img.src = imgSrc;
   img.className = "stack-preview-img";
   inner.appendChild(img);
 
