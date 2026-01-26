@@ -8,21 +8,21 @@
       "height": "",
       "minimized": false,
       "maximized": false,
-      "zIndex": 2,
+      "zIndex": 50,
       "preview": null
     },
     {
       "appKey": "software",
-      "top": "141px",
-      "left": "618px",
-      "width": "",
-      "height": "",
+      "top": "0px",
+      "left": "0px",
+      "width": "100%",
+      "height": "calc(100% - 54px)",
       "minimized": false,
-      "maximized": false,
-      "zIndex": 30,
+      "maximized": true,
+      "zIndex": 94,
       "preview": null
     }
   ],
-  "zIndexCounter": 30,
-  "timestamp": 1769395268427
+  "zIndexCounter": 94,
+  "timestamp": 1769395501257
 }

@@ -12,73 +12,15 @@ const taskbarIcons = document.querySelector(".taskbar-icons");
 let zIndexCounter = 1;
 var loadedModules = {};
 
-// Encryption key (in production, this should be securely managed)
-const ENCRYPTION_KEY = 'FrutigerAeroOS-SessionKey-2026'; // Simple key for demo
-
-async function encryptData(data) {
-  const encoder = new TextEncoder();
-  const dataBuffer = encoder.encode(JSON.stringify(data));
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(ENCRYPTION_KEY),
-    { name: 'AES-GCM' },
-    false,
-    ['encrypt']
-  );
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv },
-    key,
-    dataBuffer
-  );
-  return {
-    encrypted: btoa(String.fromCharCode(...new Uint8Array(encrypted))),
-    iv: btoa(String.fromCharCode(...iv))
-  };
-}
-
-async function decryptData(encryptedData) {
-  const decoder = new TextDecoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    decoder.encode(ENCRYPTION_KEY),
-    { name: 'AES-GCM' },
-    false,
-    ['decrypt']
-  );
-  const iv = new Uint8Array(atob(encryptedData.iv).split('').map(c => c.charCodeAt(0)));
-  const encrypted = new Uint8Array(atob(encryptedData.encrypted).split('').map(c => c.charCodeAt(0)));
-  const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: iv },
-    key,
-    encrypted
-  );
-  return JSON.parse(decoder.decode(decrypted));
-}
-
 async function saveDesktopState() {
   const windows = [];
-  for (const win of document.querySelectorAll('.window')) {
+  document.querySelectorAll('.window').forEach(win => {
     const appKey = win.dataset.appKey;
-    const rules = appRules[appKey] || {};
     const rect = win.getBoundingClientRect();
     const minimized = win.dataset.minimized === 'true';
     const maximized = win.classList.contains('maximized');
     const zIndex = parseInt(win.style.zIndex) || 1;
     const preview = minimized ? win.storedPreview : null;
-    let sessionData = null;
-    if (rules.retainSession && typeof window.getSessionData === 'function') {
-      try {
-        const data = window.getSessionData(win);
-        if (rules.dataSecurity) {
-          sessionData = await encryptData(data);
-        } else {
-          sessionData = data;
-        }
-      } catch (err) {
-        console.warn('Failed to get session data for', appKey, err);
-      }
-    }
     windows.push({
       appKey,
       top: win.style.top,
@@ -88,10 +30,9 @@ async function saveDesktopState() {
       minimized,
       maximized,
       zIndex,
-      preview,
-      sessionData
+      preview
     });
-  }
+  });
   try {
     await fetch('/api/save-state', {
       method: 'POST',
