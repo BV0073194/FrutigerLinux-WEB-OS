@@ -367,7 +367,7 @@ async function openStackMenu(app, icon) {
     const taskbarHeight = 54;
 
     let top = rect.top - menuRect.height - 10;
-    let left = rect.left;
+    let left = rect.left + rect.width / 2 - menuRect.width / 2;
 
     if (top < 0) {
       top = rect.bottom + 10;
