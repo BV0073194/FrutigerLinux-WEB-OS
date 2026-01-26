@@ -20,9 +20,9 @@
       </div>
 
       <div class="taskbar-icons">
-        <button class="task-icon" data-app="os" title="Download OS">🪟</button>
-        <button class="task-icon" data-app="software" title="Software Store">⬇️</button>
-        <button class="task-icon" data-app="about" title="About">ℹ️</button>
+        <button class="task-icon" data-app="os" title="Download OS"><img src="/apps/os/icon.png" alt="OS" class="app-icon" style="width: 100%; height: 100%; object-fit: contain;" onload="validateIconSize(this)"></button>
+        <button class="task-icon" data-app="software" title="Software Store"><img src="/apps/software/icon.png" alt="Software" class="app-icon" style="width: 100%; height: 100%; object-fit: contain;" onload="validateIconSize(this)"></button>
+        <button class="task-icon" data-app="about" title="About"><img src="/apps/about/icon.png" alt="About" class="app-icon" style="width: 100%; height: 100%; object-fit: contain;" onload="validateIconSize(this)"></button>
       </div>
 
       <div class="taskbar-right">
@@ -38,16 +38,8 @@
       </div>
       <div class="start-menu-grid">
         <button class="start-tile" data-app="os">
-          <div class="tile-icon">🪟</div>
-          <div class="tile-title">Download OS</div>
-        </button>
-        <button class="start-tile" data-app="software">
-          <div class="tile-icon">⬇️</div>
-          <div class="tile-title">Software Store</div>
-        </button>
-        <button class="start-tile" data-app="about">
-          <div class="tile-icon">ℹ️</div>
-          <div class="tile-title">About</div>
+          <div class="tile-icon"><img src="/apps/os/icon.png" alt="OS" class="app-icon" style="width: 100%; height: 100%; object-fit: contain;" onload="validateIconSize(this)"></div>
+          <div class="tile-title">Shutdown</div>
         </button>
       </div>
     </div>
@@ -56,6 +48,15 @@
     <div class="window-container" id="windowContainer"></div>
   </div>
 
+  <script>
+    function validateIconSize(img) {
+      const allowedSizes = [32, 64, 128, 256, 512];
+      if (!allowedSizes.includes(img.naturalWidth) || img.naturalWidth !== img.naturalHeight) {
+        console.warn(`Icon ${img.src} has invalid size ${img.naturalWidth}x${img.naturalHeight}. Allowed: 32x32, 64x64, 128x128, 256x256, 512x512`);
+        img.style.display = 'none'; // hide invalid icons
+      }
+    }
+  </script>
   <script src="/app.js"></script>
   <canvas id="previewCanvas" style="display:none;"></canvas>
 </body>

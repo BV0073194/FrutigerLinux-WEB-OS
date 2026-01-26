@@ -58,9 +58,51 @@ async function loadCommunityApps() {
     const res = await fetch("/api/apps");
     const apps = await res.json();
 
-    apps.forEach(app => {
+    for (const app of apps) {
       appRules[app.name] = app.rules;
-    });
+
+      // Get icon from appico tag
+      try {
+        const htmlRes = await fetch(`/apps/${app.name}/index.html`);
+        const html = await htmlRes.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const appico = doc.querySelector('appico');
+        if (appico && appico.getAttribute('src')) {
+          appRules[app.name].icon = appico.getAttribute('src');
+        } else {
+          appRules[app.name].icon = `/apps/${app.name}/icon.png`;
+        }
+      } catch (err) {
+        appRules[app.name].icon = `/apps/${app.name}/icon.png`;
+      }
+
+      // Add to taskbar and start menu if taskbarIcon is true
+      if (app.rules.taskbarIcon) {
+        // Check if already exists
+        if (!document.querySelector(`.taskbar-icons [data-app="${app.name}"]`)) {
+          // Taskbar icon
+          const taskIcon = document.createElement("button");
+          taskIcon.className = "task-icon";
+          taskIcon.dataset.app = app.name;
+          taskIcon.title = app.name;
+          taskIcon.innerHTML = `<img src="${appRules[app.name].icon}" alt="${app.name}" class="app-icon" style="width: 100%; height: 100%; object-fit: contain;" onload="validateIconSize(this)">`;
+          taskbarIcons.appendChild(taskIcon);
+        }
+
+        if (!document.querySelector(`.start-menu-grid [data-app="${app.name}"]`)) {
+          // Start menu tile
+          const startTile = document.createElement("button");
+          startTile.className = "start-tile";
+          startTile.dataset.app = app.name;
+          startTile.innerHTML = `
+            <div class="tile-icon"><img src="${appRules[app.name].icon}" alt="${app.name}" class="app-icon" style="width: 100%; height: 100%; object-fit: contain;" onload="validateIconSize(this)"></div>
+            <div class="tile-title">${app.name}</div>
+          `;
+          document.querySelector('.start-menu-grid').appendChild(startTile);
+        }
+      }
+    }
   } catch (err) {
     console.warn("Failed to load community apps:", err);
   }
@@ -249,8 +291,9 @@ async function openApp(appKey) {
   // For non-stacking apps, create individual taskbar icon
   if (!rules.stack) {
     const icon = document.createElement("button");
-    icon.className = launcher.className;
-    icon.innerHTML = launcher.innerHTML;
+    icon.className = "task-icon";
+    const iconSrc = rules.icon || `/apps/${appKey}/icon.png`;
+    icon.innerHTML = `<img src="${iconSrc}" alt="${appKey}" class="app-icon" style="width: 100%; height: 100%; object-fit: contain;" onload="validateIconSize(this)">`;
     icon.win = win;
     icon.addEventListener("click", () => {
       focusWindow(icon.win);
