@@ -857,13 +857,19 @@ function closeUAC() {
 
 // EXECUTE COMMAND VIA API
 function execCommand(command) {
-  fetch("/api/exec", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-socket-id": socketId
-    },
-    body: JSON.stringify({ command })
+  return new Promise((resolve, reject) => {
+    socket.emit("exec:request", { command });
+
+    socket.once("exec:result", (data) => {
+      if (data.error) reject(data);
+      else resolve(data);
+    });
   });
 }
+
+async function run(cmd) {
+  const res = await execCommand(cmd);
+  console.log(res.stdout || res.stderr);
+}
+
 // ==============================

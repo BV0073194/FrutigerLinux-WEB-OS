@@ -1,4 +1,16 @@
 {
-  "windows": [],
-  "zIndexCounter": 197
+  "windows": [
+    {
+      "appKey": "software",
+      "top": "70px",
+      "left": "70px",
+      "width": "",
+      "height": "",
+      "minimized": false,
+      "maximized": false,
+      "zIndex": 198,
+      "preview": null
+    }
+  ],
+  "zIndexCounter": 204
 }
