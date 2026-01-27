@@ -1,6 +1,3 @@
-const openModule = require("open");
-const open = openModule.default || openModule;
-const { exec } = require("child_process");
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
@@ -9,117 +6,113 @@ const crypto = require("crypto");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
-app.use(express.static(path.join(__dirname, "../public")));
-
-// -----------------------------
-// NEW: Community Apps Folder
-// -----------------------------
-const APPS_DIR = path.join(__dirname, "../public/apps");
-const USER_CONFIG_FILE = path.join(__dirname, "userConfig.json");
-
-// -----------------------------
-// Existing Directories
-// -----------------------------
+// ==============================
+// PATHS
+// ==============================
+const PUBLIC_DIR = path.join(__dirname, "../public");
+const APPS_DIR = path.join(PUBLIC_DIR, "apps");
 const SOFTWARE_DIR = path.join(__dirname, "uploads");
+const USER_CONFIG_FILE = path.join(__dirname, "userConfig.json");
+const STATE_FILE = path.join(__dirname, "desktopState.json");
 const OS_FILE = path.join(__dirname, "os", "FrutigerAeroOS.exe");
 
-// Generate SHA256 for file
+// ==============================
+// MIDDLEWARE
+// ==============================
+app.use(express.json());
+app.use(express.static(PUBLIC_DIR));
+
+// ==============================
+// HELPERS
+// ==============================
 function sha256File(filePath) {
-  const fileBuffer = fs.readFileSync(filePath);
-  const hashSum = crypto.createHash("sha256");
-  hashSum.update(fileBuffer);
-  return hashSum.digest("hex");
+  const buf = fs.readFileSync(filePath);
+  return crypto.createHash("sha256").update(buf).digest("hex");
 }
 
-// Ensure user config exists
-function ensureUserConfig() {
-  if (!fs.existsSync(USER_CONFIG_FILE)) {
-    fs.writeFileSync(
-      USER_CONFIG_FILE,
-      JSON.stringify({ installedApps: {} }, null, 2)
-    );
+function ensureFile(file, defaultValue) {
+  if (!fs.existsSync(file)) {
+    fs.writeFileSync(file, JSON.stringify(defaultValue, null, 2));
   }
 }
 
-// Read user config
-function readUserConfig() {
-  ensureUserConfig();
-  return JSON.parse(fs.readFileSync(USER_CONFIG_FILE, "utf8"));
+function readJSON(file, fallback) {
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch {
+    return fallback;
+  }
 }
 
-// Save user config
-function saveUserConfig(config) {
-  fs.writeFileSync(USER_CONFIG_FILE, JSON.stringify(config, null, 2));
-}
+// ==============================
+// BOOTSTRAP FILES
+// ==============================
+ensureFile(USER_CONFIG_FILE, { installedApps: {} });
+ensureFile(STATE_FILE, { windows: [], zIndexCounter: 1 });
 
-// API - list software
+// ==============================
+// API: SOFTWARE LIST
+// ==============================
 app.get("/api/software", (req, res) => {
+  if (!fs.existsSync(SOFTWARE_DIR)) return res.json([]);
+
   const files = fs.readdirSync(SOFTWARE_DIR);
-  const software = files.map((file) => {
-    const fullPath = path.join(SOFTWARE_DIR, file);
-    const stats = fs.statSync(fullPath);
-    const sha = sha256File(fullPath);
-
-    return {
-      file,
-      name: path.parse(file).name,
-      version: "1.0.0",
-      size: `${Math.round(stats.size / 1024 / 1024)} MB`,
-      sha,
-      icon: "⬇️",
-    };
-  });
-
-  res.json(software);
+  res.json(
+    files.map(file => {
+      const fullPath = path.join(SOFTWARE_DIR, file);
+      const stats = fs.statSync(fullPath);
+      return {
+        file,
+        name: path.parse(file).name,
+        version: "1.0.0",
+        size: `${Math.round(stats.size / 1024 / 1024)} MB`,
+        sha: sha256File(fullPath),
+        icon: "⬇️"
+      };
+    })
+  );
 });
 
-// -----------------------------
-// NEW: API - list community apps
-// -----------------------------
+// ==============================
+// API: COMMUNITY APPS
+// ==============================
 app.get("/api/apps", (req, res) => {
-  const folders = fs.readdirSync(APPS_DIR).filter((f) => {
-    return fs.statSync(path.join(APPS_DIR, f)).isDirectory();
-  });
+  if (!fs.existsSync(APPS_DIR)) return res.json([]);
 
-  const apps = folders.map((folder) => {
-    const propsPath = path.join(APPS_DIR, folder, `${folder}.properties`);
+  const DEFAULT_RULES = {
+    maxInstances: 1,
+    stack: false,
+    resizable: true,
+    minimize: true,
+    maximize: true,
+    taskbarIcon: false,
+    addToTaskbar: false
+  };
 
-    const props = fs.existsSync(propsPath)
-      ? JSON.parse(fs.readFileSync(propsPath, "utf8"))
-      : {};
+  const apps = fs.readdirSync(APPS_DIR)
+    .filter(name => fs.statSync(path.join(APPS_DIR, name)).isDirectory())
+    .map(name => {
+      const propsPath = path.join(APPS_DIR, name, "app.properties.json");
+      const rules = fs.existsSync(propsPath)
+        ? { ...DEFAULT_RULES, ...readJSON(propsPath, {}) }
+        : DEFAULT_RULES;
 
-    return {
-      name: folder,
-      rules: props.rules || {
-        maxInstances: 1,
-        stack: false,
-        resizable: true,
-        minimize: true,
-        maximize: true,
-        taskbarIcon: false
-      },
-      icon: props.icon || "⬇️",
-      title: props.title || folder
-    };
-  });
+      return { name, rules };
+    });
 
   res.json(apps);
 });
 
-// -----------------------------
-// NEW: API - get user config
-// -----------------------------
+// ==============================
+// API: USER CONFIG
+// ==============================
 app.get("/api/user-config", (req, res) => {
-  res.json(readUserConfig());
+  res.json(readJSON(USER_CONFIG_FILE, { installedApps: {} }));
 });
 
-// -----------------------------
-// NEW: API - install app
-// -----------------------------
 app.post("/api/install", (req, res) => {
   const { appId, addedTo } = req.body;
-  const config = readUserConfig();
+  const config = readJSON(USER_CONFIG_FILE, { installedApps: {} });
 
   config.installedApps[appId] = {
     installed: true,
@@ -127,73 +120,56 @@ app.post("/api/install", (req, res) => {
     asked: true
   };
 
-  saveUserConfig(config);
+  fs.writeFileSync(USER_CONFIG_FILE, JSON.stringify(config, null, 2));
   res.json({ success: true });
 });
 
-// -----------------------------
-// NEW: API - save desktop state
-// -----------------------------
-const STATE_FILE = path.join(__dirname, "desktopState.json");
-
+// ==============================
+// API: DESKTOP STATE
+// ==============================
 app.post("/api/save-state", (req, res) => {
-  const { windows, zIndexCounter } = req.body;
-  const state = { windows, zIndexCounter, timestamp: Date.now() };
-  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+  fs.writeFileSync(STATE_FILE, JSON.stringify(req.body, null, 2));
   res.json({ success: true });
 });
 
-// -----------------------------
-// NEW: API - load desktop state
-// -----------------------------
 app.get("/api/load-state", (req, res) => {
-  if (!fs.existsSync(STATE_FILE)) {
-    return res.json({ windows: [], zIndexCounter: 1 });
-  }
-  const state = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
-  res.json(state);
+  res.json(readJSON(STATE_FILE, { windows: [], zIndexCounter: 1 }));
 });
 
-// -----------------------------
-// API - list js files in app
-// -----------------------------
+// ==============================
+// API: APP JS FILES
+// ==============================
 app.get("/api/apps/:appname", (req, res) => {
-  const appname = req.params.appname;
-  const appDir = path.join(APPS_DIR, appname);
-
+  const appDir = path.join(APPS_DIR, req.params.appname);
   if (!fs.existsSync(appDir)) {
     return res.status(404).json({ error: "App not found" });
   }
 
-  fs.readdir(appDir, (err, files) => {
-    if (err) return res.status(500).json({ error: "Error reading directory" });
-    const jsFiles = files.filter(f => f.endsWith('.js'));
-    res.json(jsFiles);
-  });
+  const jsFiles = fs.readdirSync(appDir).filter(f => f.endsWith(".js"));
+  res.json(jsFiles);
 });
 
-// NEW: Serve apps static files (CORRECTED)
-app.use("/apps", express.static(APPS_DIR));
-
-// Download OS
+// ==============================
+// DOWNLOADS
+// ==============================
 app.get("/apps/os", (req, res) => {
   res.download(OS_FILE);
 });
 
-// Download software
 app.get("/download/software/:file", (req, res) => {
-  const file = req.params.file;
-  const fullPath = path.join(SOFTWARE_DIR, file);
-  res.download(fullPath);
+  res.download(path.join(SOFTWARE_DIR, req.params.file));
 });
 
-
-// fallback
+// ==============================
+// FALLBACK (SPA ROUTING)
+// ==============================
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/index.html"));
+  res.sendFile(path.join(PUBLIC_DIR, "index.html"));
 });
 
-app.listen(PORT, async() => {
-  fs.writeFileSync(STATE_FILE, JSON.stringify({}, null, 2));
-  const url = `http://localhost:${PORT}`;
+// ==============================
+// START SERVER
+// ==============================
+app.listen(PORT, () => {
+  console.log(`🚀 FrutigerLinux WEB-OS running at http://localhost:${PORT}`);
 });
