@@ -856,20 +856,34 @@ function closeUAC() {
 
 
 // EXECUTE COMMAND VIA API
-function execCommand(command) {
-  return new Promise((resolve, reject) => {
-    socket.emit("exec:request", { command });
-
-    socket.once("exec:result", (data) => {
-      if (data.error) reject(data);
-      else resolve(data);
-    });
+async function execCommand(command) {
+  const res = await fetch("/api/exec", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-socket-id": socketId
+    },
+    body: JSON.stringify({ command })
   });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw data;
+  }
+
+  // If UAC is required, server responds with { pending: true }
+  if (data.pending) {
+    console.warn("⚠️ UAC approval required");
+    return data;
+  }
+
+  return data;
 }
+
 
 async function run(cmd) {
   const res = await execCommand(cmd);
   console.log(res.stdout || res.stderr);
 }
-
 // ==============================

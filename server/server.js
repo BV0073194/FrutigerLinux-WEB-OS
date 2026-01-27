@@ -240,14 +240,22 @@ app.post("/api/exec", async (req, res) => {
   socket.uacApproved = false; // reset after use
 
   exec(command, (error, stdout, stderr) => {
+    console.log("🟢 EXEC CALLBACK FIRED");
+
+    if (error) {
+      console.error("🔴 EXEC ERROR:", error.message);
+    }
+
+    console.log("STDOUT:", stdout);
+    console.log("STDERR:", stderr);
+
     socket.emit("exec:result", {
-      success: !error,
       stdout,
       stderr,
-      error: error?.message
+      error: error?.message || null
     });
   });
-
+  
   res.json({ success: true });
 });
 
@@ -270,27 +278,6 @@ io.on("connection", (socket) => {
 
   socket.on("uac:deny", () => {
     socket.uacApproved = false;
-  });
-
-  socket.on("exec:request", ({ command }) => {
-    console.log("🟡 EXEC REQUEST RECEIVED:", command);
-
-    exec(command, (error, stdout, stderr) => {
-      console.log("🟢 EXEC CALLBACK FIRED");
-
-      if (error) {
-        console.error("🔴 EXEC ERROR:", error.message);
-      }
-
-      console.log("STDOUT:", stdout);
-      console.log("STDERR:", stderr);
-
-      socket.emit("exec:result", {
-        stdout,
-        stderr,
-        error: error?.message || null
-      });
-    });
   });
 });
 // ==============================
