@@ -1,45 +1,21 @@
 {
   "windows": [
     {
-      "appKey": "software",
-      "instanceId": "d1c6c58a-bb13-42e5-b1a1-77130a08cad4",
-      "top": "207px",
-      "left": "902px",
+      "appKey": "notepadcopy",
+      "instanceId": "563ca950-b125-4f44-833b-21229f6bd2ca",
+      "top": "133px",
+      "left": "354px",
       "width": "",
       "height": "",
       "minimized": false,
       "maximized": false,
-      "zIndex": 102,
-      "preview": null,
-      "sessionState": {
-        "inputs": {
-          "searchInput": {
-            "type": "text",
-            "value": "se"
-          }
-        },
-        "scrollPosition": {
-          "x": 0,
-          "y": 0
-        }
-      }
-    },
-    {
-      "appKey": "notepad",
-      "instanceId": "63dc3a39-f217-4949-b9d6-acf3a9e44a6a",
-      "top": "70px",
-      "left": "70px",
-      "width": "",
-      "height": "",
-      "minimized": false,
-      "maximized": false,
-      "zIndex": 96,
+      "zIndex": 147,
       "preview": null,
       "sessionState": {
         "inputs": {
           "notepad": {
             "type": "textarea",
-            "value": "awesome"
+            "value": ""
           }
         },
         "scrollPosition": {
@@ -47,43 +23,7 @@
           "y": 0
         }
       }
-    },
-    {
-      "appKey": "software",
-      "instanceId": "36fe3cd8-6620-4345-a695-898fa444629e",
-      "top": "70px",
-      "left": "70px",
-      "width": "",
-      "height": "",
-      "minimized": false,
-      "maximized": false,
-      "zIndex": 104,
-      "preview": null,
-      "sessionState": {
-        "inputs": {
-          "searchInput": {
-            "type": "text",
-            "value": "node"
-          }
-        },
-        "scrollPosition": {
-          "x": 0,
-          "y": 0
-        }
-      }
-    },
-    {
-      "appKey": "os",
-      "instanceId": "a1752eb9-ae63-44e8-b072-701300f877ff",
-      "top": "228px",
-      "left": "304px",
-      "width": "",
-      "height": "",
-      "minimized": false,
-      "maximized": false,
-      "zIndex": 116,
-      "preview": null
     }
   ],
-  "zIndexCounter": 116
+  "zIndexCounter": 147
 }

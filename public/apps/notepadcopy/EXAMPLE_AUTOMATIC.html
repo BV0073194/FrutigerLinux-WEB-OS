@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Simple Form - Automatic Session State</title>
+  <style>
+    body {
+      margin: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+    }
+    
+    .form-container {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 500px;
+      margin: 0 auto;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    
+    h2 {
+      margin-top: 0;
+      color: #667eea;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #333;
+    }
+    
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .checkbox-group input {
+      width: auto;
+    }
+    
+    .banner {
+      background: #4ade80;
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .banner strong {
+      display: block;
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+    
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      width: 100%;
+      font-weight: 500;
+    }
+    
+    button:hover {
+      background: #5568d3;
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <div class="banner">
+      <strong>✨ Automatic Session State</strong>
+      <div>Fill this form, refresh the page, and watch it restore! No custom code needed.</div>
+    </div>
+    
+    <h2>Contact Form Example</h2>
+    
+    <form onsubmit="event.preventDefault(); alert('Form submitted!');">
+      <div class="form-group">
+        <label for="fullName">Full Name:</label>
+        <input id="fullName" type="text" placeholder="John Doe" />
+      </div>
+      
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input id="email" type="email" placeholder="john@example.com" />
+      </div>
+      
+      <div class="form-group">
+        <label for="age">Age:</label>
+        <input id="age" type="number" placeholder="25" />
+      </div>
+      
+      <div class="form-group">
+        <label for="country">Country:</label>
+        <select id="country">
+          <option value="">Select a country</option>
+          <option value="us">United States</option>
+          <option value="uk">United Kingdom</option>
+          <option value="ca">Canada</option>
+          <option value="au">Australia</option>
+          <option value="de">Germany</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="message">Message:</label>
+        <textarea id="message" placeholder="Type your message here..."></textarea>
+      </div>
+      
+      <div class="form-group checkbox-group">
+        <input id="newsletter" type="checkbox" />
+        <label for="newsletter">Subscribe to newsletter</label>
+      </div>
+      
+      <div class="form-group checkbox-group">
+        <input id="terms" type="checkbox" />
+        <label for="terms">I agree to the terms and conditions</label>
+      </div>
+      
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+  
+  <!-- NO JAVASCRIPT NEEDED! -->
+  <!-- Session state is completely automatic -->
+</body>
+</html>

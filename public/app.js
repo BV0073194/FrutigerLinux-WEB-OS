@@ -610,15 +610,28 @@ async function openApp(appKey, isRestoring = false, sessionState = null) {
             .then(modules => {
               loadedModules[appPath] = modules;
               
-              // Initialize any module that has an init function or specific app pattern
+              // Initialize any module - check ALL exports for init functions
               modules.forEach(module => {
-                if (module.softwareApp && module.softwareApp.init) {
-                  module.softwareApp.init(body);
-                } else if (module.init && typeof module.init === 'function') {
+                // 1. Check if init is directly exported as a function
+                if (module.init && typeof module.init === 'function') {
                   module.init(body);
-                } else if (module.default && module.default.init) {
-                  module.default.init(body);
                 }
+                
+                // 2. Check if default export has init
+                if (module.default && typeof module.default === 'object' && module.default.init && typeof module.default.init === 'function') {
+                  module.default.init(body);
+                } else if (module.default && typeof module.default === 'function') {
+                  // 3. If default export IS a function, call it with body
+                  module.default(body);
+                }
+                
+                // 4. Check ALL named exports for objects with init methods
+                Object.keys(module).forEach(key => {
+                  if (key !== 'default' && key !== 'init' && typeof module[key] === 'object' && module[key] && module[key].init && typeof module[key].init === 'function') {
+                    module[key].init(body);
+                  }
+                });
+                
                 // Store init context for this instance
                 if (!win._moduleInstances) win._moduleInstances = [];
                 win._moduleInstances.push(module);
@@ -667,15 +680,27 @@ async function openApp(appKey, isRestoring = false, sessionState = null) {
               });
             });
           
-          // Initialize modules for this instance
+          // Initialize modules for this instance - check ALL exports for init functions
           modules.forEach(module => {
-            if (module.softwareApp && module.softwareApp.init) {
-              module.softwareApp.init(body);
-            } else if (module.init && typeof module.init === 'function') {
+            // 1. Check if init is directly exported as a function
+            if (module.init && typeof module.init === 'function') {
               module.init(body);
-            } else if (module.default && module.default.init) {
-              module.default.init(body);
             }
+            
+            // 2. Check if default export has init
+            if (module.default && typeof module.default === 'object' && module.default.init && typeof module.default.init === 'function') {
+              module.default.init(body);
+            } else if (module.default && typeof module.default === 'function') {
+              // 3. If default export IS a function, call it with body
+              module.default(body);
+            }
+            
+            // 4. Check ALL named exports for objects with init methods
+            Object.keys(module).forEach(key => {
+              if (key !== 'default' && key !== 'init' && typeof module[key] === 'object' && module[key] && module[key].init && typeof module[key].init === 'function') {
+                module[key].init(body);
+              }
+            });
           });
           
           if (!win._moduleInstances) win._moduleInstances = [];
