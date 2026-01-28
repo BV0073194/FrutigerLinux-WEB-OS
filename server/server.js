@@ -318,23 +318,46 @@ io.on("connection", (socket) => {
   });
 
   socket.on("native:launch", ({ appKey, instanceId, command, stream }) => {
+    console.log(`🎮 Launching native app: ${appKey}, stream: ${stream}, instance: ${instanceId}`);
+    
     const propsPath = path.join(APPS_DIR, appKey, "app.properties.json");
     const rules = readJSON(propsPath, {});
 
     // trust client override only if defined in properties
     rules.command = rules.command || command;
-    rules.backend = stream || rules.backend;
+    rules.stream = stream || rules.stream;
 
-    launchApp(appKey, instanceId, rules, socket);
+    if (rules.stream === "xpra") {
+      launchXpra(appKey, rules, socket, instanceId);
+    } else if (rules.stream === "sunshine") {
+      launchSunshine(appKey, rules, socket, instanceId);
+    } else {
+      socket.emit("app:error", { 
+        appKey,
+        instanceId, 
+        error: `Unknown stream type: ${rules.stream}` 
+      });
+    }
   });
 
   socket.on("native:kill", ({ instanceId }) => {
     const session = nativeSessions.get(instanceId);
     if (!session) return;
 
+    console.log(`🛑 Killing native app instance: ${instanceId}`);
+    
+    if (session.type === 'xpra' && session.display) {
+      // Stop xpra display properly
+      exec(`xpra stop ${session.display}`, (err) => {
+        if (err) console.error("Error stopping xpra:", err);
+      });
+    }
+
     try {
       process.kill(session.pid);
-    } catch {}
+    } catch (err) {
+      console.error("Error killing process:", err);
+    }
 
     nativeSessions.delete(instanceId);
   });
@@ -377,32 +400,36 @@ function launchApp(appKey, rules, socket) {
   }
 }
 
-function launchXpra(appKey, rules, socket) {
-  const display = `:${100 + Math.floor(Math.random() * 100)}`;
+function launchXpra(appKey, rules, socket, instanceId) {
+  const display = `:${100 + Math.floor(Math.random() + 100)}`;
+  const cmd = `xpra start ${display} --start-child="${rules.command}" --html=on --bind-tcp=127.0.0.1:0`;
 
-  const cmd = `
-    xpra start ${display}
-    --start-child=${rules.command}
-    --html=on
-    --bind-tcp=127.0.0.1:0
-  `;
+  console.log(`🚀 Launching Xpra: ${cmd}`);
 
-  exec(cmd, (err, stdout) => {
+  const proc = exec(cmd, (err, stdout, stderr) => {
     if (err) {
-      socket.emit("app:error", { appKey, error: err.message });
+      console.error("❌ Xpra launch error:", err);
+      socket.emit("app:error", { appKey, instanceId, error: "Failed to launch Xpra. Is Xpra installed?" });
       return;
     }
 
-    const match = stdout.match(`/port (\d+)/`);
-    if (!match) return;
+    // Parse port from stdout
+    const match = stdout.match(/port (\d+)/);
+    if (!match) {
+      console.error("Failed to parse Xpra port");
+      socket.emit("app:error", { appKey, instanceId, error: "Failed to parse Xpra port" });
+      return;
+    }
 
     const url = `http://localhost:${match[1]}`;
+    console.log(`✅ Xpra stream ready: ${url}`);
 
     nativeSessions.set(instanceId, {
       appKey,
-      pid: null,
+      pid: proc.pid,
       type: "xpra",
-      url
+      url,
+      display
     });
 
     socket.emit("app:stream", {
@@ -412,20 +439,53 @@ function launchXpra(appKey, rules, socket) {
       url
     });
   });
+
+  proc.on('exit', (code) => {
+    console.log(`Xpra process exited with code ${code}`);
+    nativeSessions.delete(instanceId);
+  });
 }
 
-function launchSunshine(appKey, rules, socket) {
-  exec(`sunshine --start ${rules.command}`, (err) => {
+function launchSunshine(appKey, rules, socket, instanceId) {
+  const sunshineUrl = "http://localhost:47989"; // Default Sunshine web UI port
+  const cmd = `sunshine "${rules.command}"`;
+  
+  console.log(`🚀 Launching Sunshine: ${cmd}`);
+
+  const proc = exec(cmd, (err) => {
     if (err) {
-      socket.emit("app:error", { appKey, error: err.message });
+      console.error("❌ Sunshine launch error:", err);
+      socket.emit("app:error", { 
+        appKey, 
+        instanceId, 
+        error: "Failed to launch Sunshine. Is Sunshine installed and configured?" 
+      });
       return;
     }
+  });
 
+  // Store session
+  nativeSessions.set(instanceId, {
+    appKey,
+    pid: proc.pid,
+    type: "sunshine",
+    url: sunshineUrl
+  });
+
+  // Give Sunshine time to start
+  setTimeout(() => {
+    console.log(`✅ Sunshine stream ready: ${sunshineUrl}`);
     socket.emit("app:stream", {
+      instanceId,
       appKey,
       type: "sunshine",
-      url: "moonlight://localhost"
+      url: sunshineUrl
     });
+  }, 2000);
+
+  proc.on('exit', (code) => {
+    console.log(`Sunshine process exited with code ${code}`);
+    nativeSessions.delete(instanceId);
   });
 }
 // ==============================

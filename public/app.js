@@ -92,11 +92,11 @@ function saveDesktopState(useBeacon = false) {
   }
   
   // Prevent saves more frequent than 100ms (debounce rapid calls)
-  const now = Date.now();
+  /*const now = Date.now();
   if (!useBeacon && now - lastSaveTime < 100) {
     return;
   }
-  lastSaveTime = now;
+  lastSaveTime = now;*/
   
   const windows = [];
   
@@ -758,6 +758,7 @@ async function openApp(appKey, isRestoring = false, sessionState = null) {
   // window controls
   win.querySelector("[data-action='close']").addEventListener("click", () => {
     closeWindow(win);
+    saveDesktopState();
   });
 
   const minBtn = win.querySelector("[data-action='minimize']");
@@ -804,6 +805,7 @@ async function openApp(appKey, isRestoring = false, sessionState = null) {
     icon.querySelector(".task-close-btn").addEventListener("click", (e) => {
       e.stopPropagation();
       closeWindow(win);
+      saveDesktopState();
     });
 
     taskbarIcons.appendChild(icon);
@@ -1079,17 +1081,18 @@ function maximizeWindow(win) {
     win.style.height = "";
     win.style.top = "70px";
     win.style.left = "70px";
+    if (!isRestoringState) {
+      saveDesktopState();
+    }
   } else {
     win.classList.add("maximized");
     win.style.top = "0";
     win.style.left = "0";
     win.style.width = "100%";
     win.style.height = "calc(100% - 54px)";
-  }
-  
-  // Save state after maximize/restore
-  if (!isRestoringState) {
-    saveDesktopState();
+    if (!isRestoringState) {
+      saveDesktopState();
+    }
   }
 }
 

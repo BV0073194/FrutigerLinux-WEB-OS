@@ -1,0 +1,15 @@
+{
+  "appname": "firefox",
+  "appTitle": "Firefox Browser (Xpra)",
+  "maxInstances": -1,
+  "stack": true,
+  "resizable": true,
+  "minimize": true,
+  "maximize": true,
+  "startPin": false,
+  "addedTaskBar": false,
+  "sessionState": false,
+  "backend": "native",
+  "stream": "xpra",
+  "command": "firefox"
+}

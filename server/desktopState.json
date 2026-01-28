@@ -1,29 +1,4 @@
 {
-  "windows": [
-    {
-      "appKey": "notepadcopy",
-      "instanceId": "563ca950-b125-4f44-833b-21229f6bd2ca",
-      "top": "133px",
-      "left": "354px",
-      "width": "",
-      "height": "",
-      "minimized": false,
-      "maximized": false,
-      "zIndex": 147,
-      "preview": null,
-      "sessionState": {
-        "inputs": {
-          "notepad": {
-            "type": "textarea",
-            "value": ""
-          }
-        },
-        "scrollPosition": {
-          "x": 0,
-          "y": 0
-        }
-      }
-    }
-  ],
-  "zIndexCounter": 147
+  "windows": [],
+  "zIndexCounter": 15
 }
