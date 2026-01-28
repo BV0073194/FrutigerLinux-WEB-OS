@@ -88,14 +88,12 @@ function createTaskbarPin(appKey, iconSrc) {
 function saveDesktopState(useBeacon = false) {
   // Don't save during restoration
   if (isRestoringState) {
-    console.log('⏸️ saveDesktopState: Skipped (restoration in progress)');
     return;
   }
   
   // Prevent saves more frequent than 100ms (debounce rapid calls)
   const now = Date.now();
   if (!useBeacon && now - lastSaveTime < 100) {
-    console.log('⏸️ saveDesktopState: Skipped (too soon after last save)');
     return;
   }
   lastSaveTime = now;
@@ -103,12 +101,10 @@ function saveDesktopState(useBeacon = false) {
   const windows = [];
   
   const allWindows = document.querySelectorAll('.window');
-  console.log('💾 saveDesktopState: Found', allWindows.length, 'windows in DOM');
   
   allWindows.forEach((win, index) => {
     const appKey = win.dataset.appKey;
     const instanceId = win.dataset.instanceId;
-    console.log(`  - Window ${index + 1}: ${appKey} (${instanceId?.slice(0,8)})`);
     
     const rules = appRules[appKey] || {};
     const windowData = {
@@ -128,7 +124,6 @@ function saveDesktopState(useBeacon = false) {
     if (rules.sessionState && win._getAppSessionState) {
       try {
         const sessionState = win._getAppSessionState();
-        console.log(`    Session state:`, sessionState);
         windowData.sessionState = sessionState;
       } catch (e) {
         console.warn('Failed to get session state for', appKey, e);
@@ -140,14 +135,11 @@ function saveDesktopState(useBeacon = false) {
     windows.push(windowData);
   });
 
-  console.log('💾 saveDesktopState: Saving', windows.length, 'windows:', windows.map(w => w.appKey + ':' + (w.instanceId?.slice(0,8) || 'no-id')).join(', '));
-  
   const payload = JSON.stringify({ windows, zIndexCounter });
   
   if (useBeacon) {
     // Use sendBeacon for synchronous save during page unload
     navigator.sendBeacon('/api/save-state', new Blob([payload], { type: 'application/json' }));
-    console.log('💾 saveDesktopState: Used sendBeacon (synchronous)');
   } else {
     // Use regular fetch for async saves
     fetch('/api/save-state', {
@@ -178,11 +170,8 @@ async function loadDesktopState() {
   // Create promise for this restoration
   restorationPromise = (async () => {
     try {
-      console.log('📂 loadDesktopState: Starting...');
-      
       // Clear any pending save timers
       clearTimeout(saveDebounceTimer);
-      console.log('🧹 Cleared pending save timers');
       
       const res = await fetch('/api/load-state');
       if (!res.ok) {
@@ -190,10 +179,8 @@ async function loadDesktopState() {
         return;
       }
       const state = await res.json();
-      console.log('📂 loadDesktopState: Loaded', state.windows?.length || 0, 'windows from server');
       
       if (!state.windows || state.windows.length === 0) {
-        console.log('📂 No windows to restore');
         return;
       }
       
@@ -207,11 +194,8 @@ async function loadDesktopState() {
       Object.keys(appInstances).forEach(key => {
         appInstances[key] = [];
       });
-      console.log('🧹 Cleared existing windows');
 
       for (const winState of state.windows) {
-        console.log('📂 Restoring window:', winState.appKey, 'ID:', winState.instanceId?.slice(0, 8));
-        
         try {
           await openApp(winState.appKey, true, winState.sessionState); // pass restore flag and session state
           
@@ -244,14 +228,11 @@ async function loadDesktopState() {
         console.error('Error restoring window:', winState.appKey, err);
       }
     }
-    
-    console.log('✅ loadDesktopState: Complete - restored', state.windows?.length || 0, 'windows');
   } catch (err) {
     console.error('Failed to load desktop state:', err);
   } finally {
-    isRestoringState = false; // Re-enable saves
-    restorationPromise = null; // Clear restoration lock
-    console.log('🔓 State restoration complete - saves enabled');
+    isRestoringState = false;
+    restorationPromise = null;
   }
   })();
   
@@ -340,10 +321,9 @@ function debouncedSave() {
   clearTimeout(saveDebounceTimer);
   saveDebounceTimer = setTimeout(() => {
     if (!isRestoringState) {
-      console.log('⏱️ Debounced save triggered');
       saveDesktopState(false);
     }
-  }, 1000); // Save 1 second after last input change
+  }, 1000);
 }
 
 // Listen for input changes in any window to trigger save
@@ -353,10 +333,9 @@ document.addEventListener('input', (e) => {
   }
 }, true);
 
-// Save when window loses focus (but not on visibility change during page load)
+// Save when window loses focus
 window.addEventListener('blur', () => {
   if (!isRestoringState && document.querySelectorAll('.window').length > 0) {
-    console.log('👁️ Window blurred - saving state');
     saveDesktopState(false);
   }
 });
@@ -427,8 +406,6 @@ function setupSessionState(win, body) {
       scrollPosition: { x: body.scrollLeft || 0, y: body.scrollTop || 0 }
     };
     
-    console.log('📦 Auto-capturing state for', win.dataset.appKey);
-    
     // Capture all form inputs
     body.querySelectorAll('input, textarea, select').forEach(element => {
       if (element.id || element.name) {
@@ -470,15 +447,12 @@ function setupSessionState(win, body) {
       }
     });
     
-    console.log('📦 Auto-captured state:', state);
     return state;
   };
   
   // Auto-restore function: restores DOM state automatically
   win._restoreAppSessionState = (state) => {
     if (!state) return;
-    
-    console.log('📦 Auto-restoring state for', win.dataset.appKey, state);
     
     // Auto-restore common state
     setTimeout(() => {
@@ -487,7 +461,6 @@ function setupSessionState(win, body) {
         Object.keys(state.inputs).forEach(key => {
           const element = body.querySelector(`#${key}, [name="${key}"]`);
           if (!element) {
-            console.warn(`Could not find element for key: ${key}`);
             return;
           }
           
@@ -503,8 +476,6 @@ function setupSessionState(win, body) {
           } else {
             element.value = inputState.value;
           }
-          
-          console.log(`Restored ${key}:`, inputState.value || inputState.checked);
           
           // Trigger input event for search boxes and reactive fields
           if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
@@ -592,26 +563,66 @@ async function openApp(appKey, isRestoring = false, sessionState = null) {
       .then((r) => r.text())
       .then((html) => {
         const body = win.querySelector(".window-body");
+        
+        // Add unique class to scope CSS
+        const scopeClass = `app-${appKey}-${instanceId}`;
+        body.classList.add(scopeClass);
+        
         body.innerHTML = html;
         
-        // Load JS modules
+        // Load CSS and JS files
         if (!loadedModules[appPath]) {
-          return fetch(`/api/apps/${appKey}`)
+          return fetch(`/api/apps/${appKey}/files`)
             .then(r => r.json())
-            .then(jsFiles => {
-              const loadPromises = jsFiles.map(file => import(`${appPath}/${file}`));
-              return Promise.all(loadPromises);
+            .then(files => {
+              // Load CSS files scoped to this window
+              const cssPromises = files.css.map(cssFile => {
+                return fetch(`${appPath}/${cssFile}`)
+                  .then(r => r.text())
+                  .then(css => {
+                    // Scope CSS to this specific window instance
+                    const scopedCSS = css.replace(/(^|\})\s*([^{]+)\{/g, (match, p1, selector) => {
+                      // Don't scope @rules, keyframes, etc
+                      if (selector.trim().startsWith('@')) return match;
+                      // Scope all other selectors
+                      const scoped = selector.split(',').map(s => `.${scopeClass} ${s.trim()}`).join(', ');
+                      return `${p1}${scoped}{`;
+                    });
+                    
+                    // Inject scoped CSS into a style tag
+                    const style = document.createElement('style');
+                    style.setAttribute('data-app', appKey);
+                    style.setAttribute('data-instance', instanceId);
+                    style.textContent = scopedCSS;
+                    body.appendChild(style);
+                  });
+              });
+              
+              // Load JS modules
+              const jsPromises = files.js.map(file => import(`${appPath}/${file}`));
+              
+              return Promise.all([...cssPromises, ...jsPromises])
+                .then(results => {
+                  // Filter out CSS promises (undefined) and keep only JS modules
+                  return results.filter(r => r !== undefined);
+                });
             })
             .then(modules => {
               loadedModules[appPath] = modules;
-              const softwareModule = modules.find(m => m.softwareApp);
-              if (softwareModule) {
-                softwareModule.softwareApp.init(win.querySelector(".window-body"));
-              }
-              const osModule = modules.find(m => m.init);
-              if (osModule) {
-                osModule.init();
-              }
+              
+              // Initialize any module that has an init function or specific app pattern
+              modules.forEach(module => {
+                if (module.softwareApp && module.softwareApp.init) {
+                  module.softwareApp.init(body);
+                } else if (module.init && typeof module.init === 'function') {
+                  module.init(body);
+                } else if (module.default && module.default.init) {
+                  module.default.init(body);
+                }
+                // Store init context for this instance
+                if (!win._moduleInstances) win._moduleInstances = [];
+                win._moduleInstances.push(module);
+              });
               
               // Setup session state wrapper for this window
               if (rules.sessionState) {
@@ -619,27 +630,56 @@ async function openApp(appKey, isRestoring = false, sessionState = null) {
                 
                 // Restore session state AFTER app is fully initialized
                 if (win._pendingSessionState) {
-                  console.log('⏳ Waiting for app to initialize before restoring state...');
                   setTimeout(() => {
                     if (win._restoreAppSessionState) {
-                      console.log('✅ App initialized, restoring session state now');
                       win._restoreAppSessionState(win._pendingSessionState);
                       delete win._pendingSessionState;
                     }
-                  }, 300); // Wait 300ms for app to fully initialize
+                  }, 300);
                 }
               }
             })
-            .catch(err => console.error('Failed to load JS modules:', err));
+            .catch(err => console.error('Failed to load app files:', err));
         } else {
-          const softwareModule = loadedModules[appPath].find(m => m.softwareApp);
-          if (softwareModule) {
-            softwareModule.softwareApp.init(win.querySelector(".window-body"));
-          }
-          const osModule = loadedModules[appPath].find(m => m.init);
-          if (osModule) {
-            osModule.init();
-          }
+          // Modules already loaded, just initialize for this instance
+          const modules = loadedModules[appPath];
+          
+          // Re-inject CSS for this instance
+          fetch(`/api/apps/${appKey}/files`)
+            .then(r => r.json())
+            .then(files => {
+              files.css.forEach(cssFile => {
+                fetch(`${appPath}/${cssFile}`)
+                  .then(r => r.text())
+                  .then(css => {
+                    const scopedCSS = css.replace(/(^|\})\s*([^{]+)\{/g, (match, p1, selector) => {
+                      if (selector.trim().startsWith('@')) return match;
+                      const scoped = selector.split(',').map(s => `.${scopeClass} ${s.trim()}`).join(', ');
+                      return `${p1}${scoped}{`;
+                    });
+                    
+                    const style = document.createElement('style');
+                    style.setAttribute('data-app', appKey);
+                    style.setAttribute('data-instance', instanceId);
+                    style.textContent = scopedCSS;
+                    body.appendChild(style);
+                  });
+              });
+            });
+          
+          // Initialize modules for this instance
+          modules.forEach(module => {
+            if (module.softwareApp && module.softwareApp.init) {
+              module.softwareApp.init(body);
+            } else if (module.init && typeof module.init === 'function') {
+              module.init(body);
+            } else if (module.default && module.default.init) {
+              module.default.init(body);
+            }
+          });
+          
+          if (!win._moduleInstances) win._moduleInstances = [];
+          win._moduleInstances.push(...modules);
           
           // Setup session state wrapper for this window
           if (rules.sessionState) {
@@ -647,14 +687,12 @@ async function openApp(appKey, isRestoring = false, sessionState = null) {
             
             // Restore session state AFTER app is fully initialized
             if (win._pendingSessionState) {
-              console.log('⏳ Waiting for app to initialize before restoring state...');
               setTimeout(() => {
                 if (win._restoreAppSessionState) {
-                  console.log('✅ App initialized, restoring session state now');
                   win._restoreAppSessionState(win._pendingSessionState);
                   delete win._pendingSessionState;
                 }
-              }, 300); // Wait 300ms for app to fully initialize
+              }, 300);
             }
           }
         }
@@ -763,6 +801,13 @@ function focusWindow(win) {
 
 function closeWindow(win) {
   const appKey = win.dataset.appKey;
+  const instanceId = win.dataset.instanceId;
+  
+  // Clean up instance-specific styles
+  document.querySelectorAll(`style[data-instance="${instanceId}"]`).forEach(style => {
+    style.remove();
+  });
+  
   appInstances[appKey] = appInstances[appKey].filter((w) => w !== win);
   if (win.taskbarIcon) {
     win.taskbarIcon.remove();

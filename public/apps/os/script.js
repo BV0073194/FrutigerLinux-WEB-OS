@@ -1,16 +1,33 @@
-async function downloadOS(caller) {
-    const res = await fetch("/download/os");
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
+export const osApp = {
+  init(body) {
+    const downloadBtn = body.querySelector("#downloadOsBtn");
+    const statusElement = body.querySelector("#osStatus");
+    
+    if (downloadBtn && statusElement) {
+      downloadBtn.addEventListener("click", async () => {
+        statusElement.textContent = "Downloading...";
+        
+        try {
+          const res = await fetch("/apps/os");
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "FrutigerAeroOS.exe";
-    a.click();
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "FrutigerAeroOS.exe";
+          a.click();
 
-    URL.revokeObjectURL(url);
-    caller.getRootNode().getElementById("osStatus").textContent = "Downloaded!";
-    setTimeout(() => {
-        caller.getRootNode().getElementById("osStatus").textContent = "Ready";
-    }, 3000);
-}
+          URL.revokeObjectURL(url);
+          statusElement.textContent = "Downloaded!";
+          
+          setTimeout(() => {
+            statusElement.textContent = "Ready";
+          }, 3000);
+        } catch (err) {
+          statusElement.textContent = "Download failed!";
+          console.error("OS download error:", err);
+        }
+      });
+    }
+  }
+};

@@ -2,14 +2,14 @@
   "windows": [
     {
       "appKey": "software",
-      "instanceId": "84fd8f2e-4f3b-4f39-8e88-f1c7051b9367",
-      "top": "70px",
-      "left": "70px",
+      "instanceId": "d1c6c58a-bb13-42e5-b1a1-77130a08cad4",
+      "top": "207px",
+      "left": "902px",
       "width": "",
       "height": "",
       "minimized": false,
       "maximized": false,
-      "zIndex": 6,
+      "zIndex": 102,
       "preview": null,
       "sessionState": {
         "inputs": {
@@ -25,21 +25,21 @@
       }
     },
     {
-      "appKey": "software",
-      "instanceId": "53adce53-db75-4e6a-933a-6c4d3440a747",
-      "top": "184px",
-      "left": "410px",
+      "appKey": "notepad",
+      "instanceId": "63dc3a39-f217-4949-b9d6-acf3a9e44a6a",
+      "top": "70px",
+      "left": "70px",
       "width": "",
       "height": "",
       "minimized": false,
       "maximized": false,
-      "zIndex": 14,
+      "zIndex": 96,
       "preview": null,
       "sessionState": {
         "inputs": {
-          "searchInput": {
-            "type": "text",
-            "value": "sex"
+          "notepad": {
+            "type": "textarea",
+            "value": "awesome"
           }
         },
         "scrollPosition": {
@@ -47,7 +47,43 @@
           "y": 0
         }
       }
+    },
+    {
+      "appKey": "software",
+      "instanceId": "36fe3cd8-6620-4345-a695-898fa444629e",
+      "top": "70px",
+      "left": "70px",
+      "width": "",
+      "height": "",
+      "minimized": false,
+      "maximized": false,
+      "zIndex": 104,
+      "preview": null,
+      "sessionState": {
+        "inputs": {
+          "searchInput": {
+            "type": "text",
+            "value": "node"
+          }
+        },
+        "scrollPosition": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    },
+    {
+      "appKey": "os",
+      "instanceId": "a1752eb9-ae63-44e8-b072-701300f877ff",
+      "top": "228px",
+      "left": "304px",
+      "width": "",
+      "height": "",
+      "minimized": false,
+      "maximized": false,
+      "zIndex": 116,
+      "preview": null
     }
   ],
-  "zIndexCounter": 18
+  "zIndexCounter": 116
 }

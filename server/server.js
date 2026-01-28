@@ -159,6 +159,21 @@ app.get("/api/apps/:appname", (req, res) => {
 });
 
 // ==============================
+// API: APP FILES (JS AND CSS)
+// ==============================
+app.get("/api/apps/:appname/files", (req, res) => {
+  const appDir = path.join(APPS_DIR, req.params.appname);
+  if (!fs.existsSync(appDir)) {
+    return res.status(404).json({ error: "App not found" });
+  }
+
+  const jsFiles = fs.readdirSync(appDir).filter(f => f.endsWith(".js"));
+  const cssFiles = fs.readdirSync(appDir).filter(f => f.endsWith(".css"));
+  
+  res.json({ js: jsFiles, css: cssFiles });
+});
+
+// ==============================
 // DOWNLOADS
 // ==============================
 app.get("/apps/os", (req, res) => {
@@ -199,28 +214,6 @@ server.listen(PORT, () => {
     fs.writeFileSync(STATE_FILE, JSON.stringify(initialState, null, 2));
   }
   console.log(`🚀 Server running on http://localhost:${PORT}`);
-  
-  // Watch desktopState.json for changes to debug save issues
-  console.log(`👁️ Watching ${STATE_FILE} for changes...`);
-  fs.watch(STATE_FILE, (eventType, filename) => {
-    if (eventType === 'change') {
-      try {
-        const content = fs.readFileSync(STATE_FILE, 'utf8');
-        const state = JSON.parse(content);
-        console.log('📝 desktopState.json CHANGED:');
-        console.log(`   - Windows count: ${state.windows?.length || 0}`);
-        console.log(`   - zIndexCounter: ${state.zIndexCounter}`);
-        if (state.windows && state.windows.length > 0) {
-          state.windows.forEach((w, i) => {
-            console.log(`   - Window ${i + 1}: ${w.appKey} (${w.instanceId?.slice(0, 8)})`);
-          });
-        }
-        console.log('');
-      } catch (err) {
-        console.error('❌ Error reading desktopState.json:', err.message);
-      }
-    }
-  });
 });
 
 // com
