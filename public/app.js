@@ -1377,7 +1377,9 @@ function attachNativeApp(win, rules) {
 
   // Create one-time listeners for this specific instance
   const streamHandler = (data) => {
+    console.log('📡 Received app:stream event:', data);
     if (data.instanceId === instanceId) {
+      console.log('✅ Instance ID matches, processing stream data');
       if (data.external) {
         // External application (like Moonlight) - show message instead of iframe
         body.innerHTML = `
