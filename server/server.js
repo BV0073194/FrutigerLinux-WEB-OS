@@ -331,7 +331,7 @@ io.on("connection", (socket) => {
     rules.command = rules.command || command;
     rules.stream = stream || rules.stream;
 
-    if (rules.stream === "xpra") {
+    if (rules.stream === "vnc" || rules.stream === "xpra") {
       launchXpra(appKey, rules, socket, instanceId);
     } else if (rules.stream === "sunshine") {
       launchSunshine(appKey, rules, socket, instanceId);
@@ -350,47 +350,38 @@ io.on("connection", (socket) => {
 
     console.log(`🛑 Killing native app instance: ${instanceId}`);
     
-    if (session.type === 'xpra' && session.display) {
-      // Stop xpra display properly
-      exec(`xpra stop ${session.display}`, (err) => {
-        if (err) console.error("Error stopping xpra:", err);
-        else console.log(`✅ Stopped Xpra display ${session.display}`);
-      });
+    if ((session.type === 'xpra' || session.type === 'vnc') && session.display) {
+      // Stop VNC session (Xvfb + x11vnc + websockify)
+      const displayNum = session.display.replace(':', '');
       
-      // Free up the port
-      if (session.port) {
-        xpraPortsInUse.delete(session.port);
-        console.log(`✅ Released port ${session.port}`);
-      }
-    } else if (session.type === 'vnc' && session.display) {
-      // Kill VNC session components
-      console.log(`🛑 Stopping VNC session ${session.display}`);
-      
-      // Kill x11vnc
-      exec(`pkill -f "x11vnc.*${session.vncPort}"`, (err) => {
+      // Kill x11vnc server
+      exec(`pkill -f "x11vnc.*${session.display}"`, (err) => {
         if (err) console.error("Error stopping x11vnc:", err);
+        else console.log(`✅ Stopped x11vnc for display ${session.display}`);
       });
       
-      // Kill websockify
-      exec(`pkill -f "websockify.*${session.webPort}"`, (err) => {
-        if (err) console.error("Error stopping websockify:", err);
-      });
-      
-      // Kill Xvfb
-      exec(`pkill -f "Xvfb ${session.display}"`, (err) => {
-        if (err) console.error("Error stopping Xvfb:", err);
-        else console.log(`✅ Stopped VNC display ${session.display}`);
-      });
-      
-      // Free up ports
+      // Kill websockify proxy
       if (session.webPort) {
+        exec(`pkill -f "websockify.*${session.webPort}"`, (err) => {
+          if (err) console.error("Error stopping websockify:", err);
+          else console.log(`✅ Stopped websockify on port ${session.webPort}`);
+        });
+        
+        // Free up the port
         xpraPortsInUse.delete(session.webPort);
         console.log(`✅ Released port ${session.webPort}`);
       }
-    } else if (session.type === 'moonlight') {
+      
+      // Kill Xvfb virtual display
+      exec(`pkill -f "Xvfb ${session.display}"`, (err) => {
+        if (err) console.error("Error stopping Xvfb:", err);
+        else console.log(`✅ Stopped Xvfb display ${session.display}`);
+      });
+    } else if (session.type === 'sunshine' || session.type === 'moonlight') {
       // Kill Moonlight client
       exec('pkill -f moonlight', (err) => {
         if (err) console.error('Error stopping Moonlight:', err);
+        else console.log(`✅ Stopped Moonlight client`);
       });
     }
 

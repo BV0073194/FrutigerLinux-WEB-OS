@@ -1,6 +1,6 @@
 {
   "appname": "firefox",
-  "appTitle": "Firefox Browser (Xpra)",
+  "appTitle": "Firefox Browser",
   "maxInstances": -1,
   "stack": true,
   "resizable": true,
@@ -10,6 +10,7 @@
   "addedTaskBar": false,
   "sessionState": false,
   "backend": "native",
-  "stream": "xpra",
-  "command": "firefox https://www.google.com"
+  "stream": "vnc",
+  "command": "firefox https://www.google.com",
+  "description": "Launch Firefox browser in isolated VNC display. Each instance runs independently in its own virtual X session."
 }
