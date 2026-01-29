@@ -445,63 +445,75 @@ function launchXpra(appKey, rules, socket, instanceId) {
   console.log(`🚀 Creating isolated VNC session for ${appCommand}`);
   console.log(`   Display: ${display}, VNC Port: ${vncPort}, Web Port: ${webPort}`);
 
-  // Start virtual X server with the app
-  const xvfbCmd = `Xvfb ${display} -screen 0 1280x720x24 &`;
+  // Start virtual X server with the app using spawn for proper backgrounding
+  console.log(`🔧 Starting Xvfb on display ${display}`);
+  const xvfb = spawn('Xvfb', [display, '-screen', '0', '1280x720x24']);
   
-  exec(xvfbCmd, (xvfbErr) => {
-    if (xvfbErr) {
-      console.error(`❌ Failed to start Xvfb:`, xvfbErr);
+  xvfb.on('error', (err) => {
+    console.error(`❌ Failed to start Xvfb:`, err);
+    xpraPortsInUse.delete(webPort);
+    socket.emit("app:error", { 
+      appKey, 
+      instanceId, 
+      error: `Failed to start virtual display.\n\nError: ${err.message}` 
+    });
+  });
+
+  // Wait for Xvfb to be ready
+  setTimeout(() => {
+    console.log(`✅ Xvfb started on display ${display}`);
+    
+    // Start openbox window manager
+    console.log(`🪟 Starting openbox window manager`);
+    spawn('openbox', [], { env: { ...process.env, DISPLAY: display } });
+
+    // Start the application
+    console.log(`🚀 Starting application: ${appCommand}`);
+    const appParts = appCommand.split(' ');
+    const appProc = spawn(appParts[0], appParts.slice(1), { 
+      env: { ...process.env, DISPLAY: display },
+      detached: true,
+      stdio: 'ignore'
+    });
+    
+    appProc.on('error', (err) => {
+      console.error(`❌ Failed to start ${appCommand}:`, err);
       xpraPortsInUse.delete(webPort);
       socket.emit("app:error", { 
         appKey, 
         instanceId, 
-        error: `Failed to start virtual display.\n\nError: ${xvfbErr.message}` 
+        error: `Failed to start application.\n\nError: ${err.message}` 
       });
-      return;
-    }
+    });
 
-    // Wait for Xvfb to be ready
-    setTimeout(() => {
-      // Start openbox window manager
-      exec(`DISPLAY=${display} openbox &`, (wmErr) => {
-        if (wmErr) console.error(`Warning: Failed to start openbox:`, wmErr);
+    console.log(`✅ Application started: ${appCommand}`);
+
+    // Start x11vnc to stream the display
+    console.log(`📹 Starting x11vnc on port ${vncPort}`);
+    const x11vnc = spawn('x11vnc', [
+      '-display', display,
+      '-rfbport', vncPort.toString(),
+      '-forever',
+      '-shared',
+      '-nopw',
+      '-quiet'
+    ]);
+    
+    x11vnc.on('error', (err) => {
+      console.error(`❌ Failed to start x11vnc:`, err);
+      xpraPortsInUse.delete(webPort);
+      socket.emit("app:error", { 
+        appKey, 
+        instanceId, 
+        error: `Failed to start VNC server.\n\nError: ${err.message}` 
       });
+    });
 
-      // Start the application
-      exec(`DISPLAY=${display} ${appCommand} &`, (appErr) => {
-        if (appErr) {
-          console.error(`❌ Failed to start ${appCommand}:`, appErr);
-          xpraPortsInUse.delete(webPort);
-          socket.emit("app:error", { 
-            appKey, 
-            instanceId, 
-            error: `Failed to start application.\n\nError: ${appErr.message}` 
-          });
-          return;
-        }
+    console.log(`✅ x11vnc started on port ${vncPort}`);
 
-        console.log(`✅ Application started: ${appCommand}`);
-
-        // Start x11vnc to stream the display
-        const vncCmd = `x11vnc -display ${display} -rfbport ${vncPort} -forever -shared -nopw -quiet &`;
-        
-        exec(vncCmd, (vncErr) => {
-          if (vncErr) {
-            console.error(`❌ Failed to start x11vnc:`, vncErr);
-            xpraPortsInUse.delete(webPort);
-            socket.emit("app:error", { 
-              appKey, 
-              instanceId, 
-              error: `Failed to start VNC server.\n\nError: ${vncErr.message}` 
-            });
-            return;
-          }
-
-          console.log(`✅ VNC server started on port ${vncPort}`);
-
-          // Start websockify (noVNC proxy)
-          // Start websockify (noVNC proxy) - use spawn for proper background process
-          console.log(`🔧 Starting websockify on 0.0.0.0:${webPort} -> localhost:${vncPort}`);
+    // Start websockify (noVNC proxy)
+    // Start websockify (noVNC proxy) - use spawn for proper background process
+    console.log(`🔧 Starting websockify on 0.0.0.0:${webPort} -> localhost:${vncPort}`);
           
           const websockify = spawn('websockify', [
             '--web=/opt/noVNC',
@@ -556,10 +568,7 @@ function launchXpra(appKey, rules, socket, instanceId) {
               url
             });
           }, 1500);
-        });
-      });
-    }, 1000); // Wait for Xvfb to be ready
-  });
+  }, 1000); // Wait for Xvfb to be ready
 }
 
 function launchSunshine(appKey, rules, socket, instanceId) {
