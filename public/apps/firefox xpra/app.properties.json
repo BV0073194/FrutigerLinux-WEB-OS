@@ -11,5 +11,5 @@
   "sessionState": false,
   "backend": "native",
   "stream": "xpra",
-  "command": "firefox"
+  "command": "firefox https://www.google.com"
 }
