@@ -2,7 +2,7 @@
 # FrutigerLinux Auto-Update System
 # Checks GitHub for updates and applies them automatically
 
-REPO_URL="https://github.com/BV0073194/FrutigerLinux-WEB-OS"
+REPO_URL="https://github.com/BV0073194/FrutigerLinuxWEB-OS"
 INSTALL_DIR="/opt/FrutigerLinuxWEB-OS"
 LOG_FILE="/var/log/frutiger-update.log"
 LOCK_FILE="/var/lock/frutiger-update.lock"
