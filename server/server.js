@@ -406,6 +406,8 @@ function launchApp(appKey, rules, socket) {
 }
 
 function launchXpra(appKey, rules, socket, instanceId) {
+  const appCommand = rules.command || 'xterm';
+  
   // Check if Xpra service is running
   exec('systemctl --user is-active xpra.service', (err, stdout) => {
     const isRunning = stdout.trim() === 'active';
@@ -420,23 +422,39 @@ function launchXpra(appKey, rules, socket, instanceId) {
       return;
     }
 
-    console.log(`✅ Using running Xpra service for ${appKey}`);
+    console.log(`✅ Launching ${appCommand} in Xpra session`);
 
-    // Use the HTML5 client from the running Xpra service (port 10000)
-    const url = `http://localhost:10000/index.html?encoding=jpeg&quality=80&keyboard=true&sound=false`;
-    
-    nativeSessions.set(instanceId, {
-      appKey,
-      type: "xpra",
-      url,
-      port: 10000
-    });
+    // Launch the app in the Xpra session using xpra control
+    exec(`xpra control :1 start ${appCommand}`, (launchErr, launchOut) => {
+      if (launchErr) {
+        console.error(`❌ Failed to launch ${appCommand}:`, launchErr);
+        socket.emit("app:error", { 
+          appKey, 
+          instanceId, 
+          error: `Failed to launch ${appCommand}.\n\nError: ${launchErr.message}` 
+        });
+        return;
+      }
 
-    socket.emit("app:stream", {
-      instanceId,
-      appKey,
-      type: "xpra",
-      url
+      console.log(`✅ ${appCommand} launched:`, launchOut.trim());
+
+      // Return the HTML5 client URL
+      const url = `http://localhost:10000/index.html?encoding=jpeg&quality=80&keyboard=true&sound=false`;
+      
+      nativeSessions.set(instanceId, {
+        appKey,
+        type: "xpra",
+        url,
+        port: 10000,
+        command: appCommand
+      });
+
+      socket.emit("app:stream", {
+        instanceId,
+        appKey,
+        type: "xpra",
+        url
+      });
     });
   });
 }
